@@ -1,0 +1,60 @@
+stages:
+  - build
+  - testing
+  - preprod
+  - prod
+
+## build stage
+build:
+  image: node:current
+  stage: build
+  cache:
+    key: build-cache
+    paths:
+      - node_modules/
+  script:
+    - npm install
+    - npm run build
+  tags: 
+    - build
+
+## testing stage
+test unit:
+  image: node:current
+  stage: testing
+  cache:
+    key: build-cache
+    paths:
+      - node_modules/
+  script:
+    - npm install
+    - npm run test:unit
+  tags: 
+    - tests
+
+## preprod stage
+deploy to preproduction:
+  stage: preprod
+  image: docker
+  services:
+    - docker:dind
+  script:
+    - docker build -t quicker.style --target production .
+    - docker rm -f quicker
+    - docker run -d DOMAIN=style.kanishchev.team -e EMAIL=kanishevv.dev@gmail.com -p 80:80 -p 443:443 --rm --name quicker quicker.style
+  tags: 
+    - preprod
+  
+## prod stage
+deploy to production:
+  stage: prod
+  image: docker
+  when: manual
+  services:
+    - docker:dind
+  script:
+    - docker build -t app/quicker.style .
+    - docker rm -f quicker
+    - docker run -d -p 8080:8080 --rm --name quicker app/quicker.style
+  tags: 
+    - production
